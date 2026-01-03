@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+    <title>AyahStream Master</title>
+    
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Manrope:wght@300..800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#d4af35", 
+                        "onyx": { "base": "#0d1117", "surface": "#161B22", "border": "#30363D" },
+                        "text": { "main": "#f0f6fc", "muted": "#8b949e" }
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"],
+                        "arabic": ["Amiri", "serif"],
+                    },
+                    boxShadow: { "glow": "0 0 25px rgba(212, 175, 53, 0.15)" }
+                },
+            },
+        }
+    </script>
+    
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* Strict View Management */
+        .view-section { display: none; width: 100%; height: 100%; flex-direction: column; }
+        .view-section.active { display: flex; }
+        
+        /* Loaders */
+        .loader { width: 32px; height: 32px; border: 3px solid #30363D; border-bottom-color: #d4af35; border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Active Ayah Highlight */
+        .active-ayah {
+            background-color: rgba(212, 175, 53, 0.05);
+            border-color: #d4af35;
+            box-shadow: inset 0 0 10px rgba(212, 175, 53, 0.1);
+        }
+
+        /* Video Container */
+        .aspect-video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #000; }
+        .aspect-video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+    </style>
+</head>
+
+<body class="bg-onyx-base text-text-main font-display antialiased h-screen flex flex-col overflow-hidden selection:bg-primary selection:text-onyx-base">
+
+    <main id="main-container" class="flex-1 overflow-y-auto no-scrollbar relative pb-32 scroll-smooth">
+
+        <div id="view-home" class="view-section active">
+            <header class="sticky top-0 z-50 bg-onyx-base/95 backdrop-blur-md border-b border-onyx-border p-4 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">api</span>
+                    <h2 class="text-white text-lg font-bold">AyahStream</h2>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="manualLocationSearch()" class="text-xs bg-onyx-surface border border-onyx-border px-3 py-1 rounded-full flex items-center gap-1 hover:text-primary">
+                        <span class="material-symbols-outlined text-[14px]">search</span> City
+                    </button>
+                    <button onclick="getUserLocation()" class="text-xs bg-onyx-surface border border-onyx-border px-3 py-1 rounded-full flex items-center gap-1 hover:text-primary">
+                        <span class="material-symbols-outlined text-[14px]">my_location</span> GPS
+                    </button>
+                </div>
+            </header>
+
+            <div class="p-4 flex flex-col gap-6">
+                <section class="relative w-full overflow-hidden rounded-2xl bg-gradient-to-br from-onyx-surface to-onyx-base border border-onyx-border shadow-glow">
+                    <div class="absolute right-0 top-0 p-4 opacity-10"><span class="material-symbols-outlined text-6xl">mosque</span></div>
+                    <div class="relative z-10 p-6 flex flex-col items-center text-center">
+                        <span class="text-xs font-bold text-primary uppercase tracking-widest mb-2 bg-primary/10 px-2 py-0.5 rounded">Next Prayer</span>
+                        <h1 class="text-white text-5xl font-bold mb-4" id="next-prayer-name">--</h1>
+                        <div class="bg-onyx-base/50 backdrop-blur px-8 py-2 rounded-xl border border-onyx-border mb-4">
+                            <span id="timer-display" class="font-mono text-text-main text-2xl font-bold tracking-widest">00:00:00</span>
+                        </div>
+                        <div class="flex items-center gap-1 text-text-muted text-xs">
+                            <span class="material-symbols-outlined text-[14px]">location_on</span>
+                            <span id="current-location-text">Locating...</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="grid grid-cols-4 gap-2">
+                    <button onclick="switchView('view-quran-index')" class="flex flex-col items-center gap-1 p-3 bg-onyx-surface border border-onyx-border rounded-xl hover:border-primary/50">
+                        <span class="material-symbols-outlined text-primary">menu_book</span>
+                        <span class="text-[10px] font-bold">Quran</span>
+                    </button>
+                    <button onclick="switchView('view-tasbih')" class="flex flex-col items-center gap-1 p-3 bg-onyx-surface border border-onyx-border rounded-xl hover:border-primary/50">
+                        <span class="material-symbols-outlined text-primary">fingerprint</span>
+                        <span class="text-[10px] font-bold">Tasbih</span>
+                    </button>
+                    <button onclick="openQiblaModal()" class="flex flex-col items-center gap-1 p-3 bg-onyx-surface border border-onyx-border rounded-xl hover:border-primary/50">
+                        <span class="material-symbols-outlined text-primary">explore</span>
+                        <span class="text-[10px] font-bold">Qibla</span>
+                    </button>
+                    <button onclick="switchView('view-vault')" class="flex flex-col items-center gap-1 p-3 bg-onyx-surface border border-onyx-border rounded-xl hover:border-primary/50">
+                        <span class="material-symbols-outlined text-primary">video_library</span>
+                        <span class="text-[10px] font-bold">Videos</span>
+                    </button>
+                </section>
+
+                <section>
+                    <h3 class="text-white font-bold mb-3 px-1 flex items-center gap-2">Adhkar & Duas</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="openAdhkar('morning')" class="p-4 bg-onyx-surface border border-onyx-border rounded-xl flex items-center gap-3 hover:border-yellow-500/50 transition-all text-left">
+                            <span class="material-symbols-outlined text-yellow-500">light_mode</span>
+                            <div><div class="font-bold text-sm">Morning</div><div class="text-[10px] text-text-muted">Start Day</div></div>
+                        </button>
+                        <button onclick="openAdhkar('evening')" class="p-4 bg-onyx-surface border border-onyx-border rounded-xl flex items-center gap-3 hover:border-blue-500/50 transition-all text-left">
+                            <span class="material-symbols-outlined text-blue-500">dark_mode</span>
+                            <div><div class="font-bold text-sm">Evening</div><div class="text-[10px] text-text-muted">Protection</div></div>
+                        </button>
+                        <button onclick="openAdhkar('sleep')" class="p-4 bg-onyx-surface border border-onyx-border rounded-xl flex items-center gap-3 hover:border-purple-500/50 transition-all text-left">
+                            <span class="material-symbols-outlined text-purple-500">bedtime</span>
+                            <div><div class="font-bold text-sm">Sleep</div><div class="text-[10px] text-text-muted">Rest</div></div>
+                        </button>
+                        <button onclick="openAdhkar('travel')" class="p-4 bg-onyx-surface border border-onyx-border rounded-xl flex items-center gap-3 hover:border-green-500/50 transition-all text-left">
+                            <span class="material-symbols-outlined text-green-500">flight</span>
+                            <div><div class="font-bold text-sm">Travel</div><div class="text-[10px] text-text-muted">Safety</div></div>
+                        </button>
+                    </div>
+                </section>
+                
+                <div class="bg-onyx-surface border border-onyx-border rounded-xl overflow-hidden">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-onyx-base border-b border-onyx-border text-text-muted uppercase">
+                            <tr><th class="p-3">Day</th><th>Fajr</th><th>Dhur</th><th>Asr</th><th>Maghrib</th><th>Isha</th></tr>
+                        </thead>
+                        <tbody id="forecast-body" class="divide-y divide-onyx-border text-text-muted"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-quran-index" class="view-section">
+            <header class="sticky top-0 z-50 bg-onyx-base/95 backdrop-blur-md border-b border-onyx-border px-4 py-3">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="font-bold text-white text-lg">Holy Quran</h2>
+                    <div class="flex bg-onyx-surface rounded-lg p-1 border border-onyx-border">
+                        <button onclick="setQuranMode('surah')" id="btn-mode-surah" class="px-4 py-1.5 rounded-md text-xs font-bold transition-colors bg-primary text-onyx-base">Surah</button>
+                        <button onclick="setQuranMode('page')" id="btn-mode-page" class="px-4 py-1.5 rounded-md text-xs font-bold transition-colors text-text-muted">Page</button>
+                    </div>
+                </div>
+                <input type="text" id="quran-search" onkeyup="filterQuranIndex()" placeholder="Search (e.g. Kahf)..." class="w-full bg-onyx-surface border border-onyx-border text-white text-sm rounded-xl px-4 py-2 focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+            </header>
+
+            <div id="quran-grid" class="p-4 grid grid-cols-1 md:grid-cols-2 gap-3 pb-32">
+                <div class="flex justify-center col-span-full p-10"><span class="loader"></span></div>
+            </div>
+        </div>
+
+        <div id="view-quran-reader" class="view-section bg-onyx-base z-20">
+            <header class="sticky top-0 z-40 bg-onyx-base/95 backdrop-blur-md border-b border-onyx-border px-3 h-14 flex items-center justify-between">
+                <button onclick="switchView('view-quran-index')" class="size-9 flex items-center justify-center rounded-lg text-text-muted hover:text-white"><span class="material-symbols-outlined">arrow_back</span></button>
+                
+                <div class="flex flex-col items-center">
+                    <h3 class="text-white font-bold text-sm truncate max-w-[150px]" id="reader-title">Reading</h3>
+                    <select id="reciter-select" onchange="changeReciter(this.value)" class="bg-transparent border-none text-[10px] text-primary py-0 px-2 focus:ring-0 cursor-pointer text-center">
+                        <option value="ar.alafasy">Mishary Alafasy</option>
+                        <option value="ar.yasseraldossari">Yasser Al-Dosari</option>
+                        <option value="ar.sudais">Al-Sudais</option>
+                        <option value="ar.hudhaify">Al-Hudhaify</option>
+                        <option value="ar.abdulbasitmurattal">Abdul Basit</option>
+                    </select>
+                </div>
+                
+                <div class="size-9"></div>
+            </header>
+
+            <div id="reader-content" class="p-4 flex flex-col gap-4 pb-48 min-h-screen"></div>
+
+            <div class="fixed bottom-24 left-0 w-full px-4 z-40 pointer-events-none">
+                 <div class="flex justify-between pointer-events-auto">
+                     <button onclick="changePage(-1)" class="bg-onyx-surface/90 backdrop-blur border border-onyx-border text-white px-4 py-2 rounded-full shadow-lg text-xs font-bold flex items-center gap-1 active:scale-95">
+                         <span class="material-symbols-outlined text-sm">arrow_back</span> Prev
+                     </button>
+                     <button onclick="changePage(1)" class="bg-onyx-surface/90 backdrop-blur border border-onyx-border text-white px-4 py-2 rounded-full shadow-lg text-xs font-bold flex items-center gap-1 active:scale-95">
+                         Next <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                     </button>
+                 </div>
+            </div>
+
+            <div id="audio-bar" class="fixed bottom-36 left-4 right-4 z-50 bg-onyx-surface border border-primary/30 rounded-2xl p-3 shadow-2xl transform translate-y-[200%] transition-transform duration-300 flex items-center justify-between gap-3">
+                <div class="flex flex-col min-w-0 flex-1">
+                    <span class="text-primary text-[10px] font-bold uppercase">Now Playing</span>
+                    <span class="text-white text-xs font-bold truncate" id="audio-bar-title">--</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleAudio()" class="size-10 rounded-full bg-primary text-onyx-base flex items-center justify-center shadow-glow active:scale-95 transition-all">
+                        <span class="material-symbols-outlined material-symbols-filled text-[24px]" id="play-icon">play_arrow</span>
+                    </button>
+                    <button onclick="stopAudio()" class="size-8 rounded-full bg-onyx-base border border-onyx-border text-red-400 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[18px]">stop</span>
+                    </button>
+                </div>
+                <audio id="quran-audio" class="hidden"></audio>
+            </div>
+        </div>
+
+        <div id="view-adhkar" class="view-section bg-onyx-base z-30">
+            <header class="sticky top-0 z-40 bg-onyx-base/95 backdrop-blur-md border-b border-onyx-border p-4 flex items-center gap-3">
+                <button onclick="switchView('view-home')" class="size-9 flex items-center justify-center rounded-lg text-text-muted hover:text-white"><span class="material-symbols-outlined">arrow_back</span></button>
+                <h2 class="text-white font-bold text-lg" id="adhkar-title">Adhkar</h2>
+            </header>
+            <div id="adhkar-list" class="p-4 flex flex-col gap-4 pb-32"></div>
+        </div>
+
+        <div id="view-vault" class="view-section">
+            <header class="sticky top-0 z-50 bg-onyx-base/95 backdrop-blur-md border-b border-onyx-border px-5 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">video_library</span>
+                    <h2 class="text-xl font-bold text-white">Channel Videos</h2>
+                </div>
+                <span class="text-[10px] font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded">AUTO-SYNC</span>
+            </header>
+            <div id="video-feed" class="p-2 grid grid-cols-3 gap-2 pb-24">
+                 <div class="col-span-3 flex justify-center p-10"><span class="loader"></span></div>
+            </div>
+        </div>
+
+        <div id="view-tasbih" class="view-section">
+             <header class="flex items-center p-4 justify-between border-b border-onyx-border">
+                <button onclick="switchView('view-home')" class="size-9 flex items-center justify-center rounded-lg text-text-muted hover:text-white"><span class="material-symbols-outlined">arrow_back</span></button>
+                <h2 class="text-white font-bold text-lg">Tasbih</h2>
+                <button onclick="resetTasbih()" class="text-xs text-primary font-bold">RESET</button>
+            </header>
+            <div class="flex-1 flex flex-col items-center justify-center p-6 pb-24">
+                <button onclick="incrementTasbih()" id="tasbih-btn" class="w-64 h-64 rounded-full bg-onyx-surface border-4 border-onyx-border shadow-glow flex flex-col items-center justify-center active:scale-95 transition-all group select-none relative overflow-hidden">
+                     <span id="tasbih-count" class="text-7xl font-bold text-white font-mono z-10">0</span>
+                     <span class="text-xs text-text-muted mt-2 uppercase tracking-widest z-10">Tap</span>
+                     <div class="absolute inset-0 bg-primary/10 scale-0 group-active:scale-100 rounded-full transition-transform duration-100"></div>
+                </button>
+                <button onclick="saveTasbih()" class="mt-8 px-6 py-2 bg-onyx-surface border border-onyx-border rounded-full text-text-muted hover:text-primary">Save Session</button>
+                <div id="tasbih-history" class="w-full mt-4 max-h-32 overflow-y-auto px-4"></div>
+            </div>
+        </div>
+
+        <div id="video-modal" class="fixed inset-0 z-[100] bg-black/95 hidden flex-col items-center justify-center p-4">
+            <div class="w-full max-w-3xl bg-onyx-surface rounded-2xl overflow-hidden border border-onyx-border relative">
+                <div class="flex justify-between items-center p-3 border-b border-onyx-border bg-onyx-base">
+                    <h3 class="text-white font-bold text-sm truncate w-64" id="modal-title">Video</h3>
+                    <button onclick="closeVideo()" class="text-text-muted hover:text-white"><span class="material-symbols-outlined">close</span></button>
+                </div>
+                <div class="aspect-video-container"><iframe id="youtube-iframe" frameborder="0" allowfullscreen></iframe></div>
+            </div>
+        </div>
+
+        <div id="qibla-modal" class="fixed inset-0 z-[60] bg-black/95 hidden flex-col items-center justify-center p-6 text-center">
+            <button onclick="document.getElementById('qibla-modal').classList.add('hidden')" class="absolute top-6 right-6 text-white"><span class="material-symbols-outlined text-3xl">close</span></button>
+            <h2 class="text-white text-3xl font-bold mb-8">Qibla</h2>
+            <div class="relative size-72 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full border-4 border-onyx-border bg-onyx-base shadow-glow flex items-center justify-center">
+                     <div class="text-text-muted text-xs absolute top-2 font-bold">N</div>
+                     <div id="compass-needle" class="absolute w-full h-full transition-transform duration-1000 ease-out flex items-center justify-center">
+                         <div class="w-1.5 h-1/2 bg-gradient-to-t from-transparent to-primary origin-bottom absolute top-0"></div>
+                         <span class="material-symbols-outlined text-primary absolute -top-8 text-3xl animate-bounce">mosque</span>
+                     </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <nav class="fixed bottom-0 w-full bg-onyx-surface/95 backdrop-blur-xl border-t border-onyx-border pb-safe z-50">
+        <div class="grid grid-cols-4 h-16">
+            <button onclick="switchView('view-home')" class="nav-btn active group w-full flex flex-col items-center justify-center gap-1" data-target="view-home">
+                <span class="material-symbols-outlined text-primary">home</span>
+                <span class="text-[10px] text-primary font-bold">Home</span>
+            </button>
+            <button onclick="switchView('view-quran-index')" class="nav-btn group w-full flex flex-col items-center justify-center gap-1" data-target="view-quran-index">
+                <span class="material-symbols-outlined text-text-muted">menu_book</span>
+                <span class="text-[10px] text-text-muted font-medium">Quran</span>
+            </button>
+            <button onclick="switchView('view-vault')" class="nav-btn group w-full flex flex-col items-center justify-center gap-1" data-target="view-vault">
+                <span class="material-symbols-outlined text-text-muted">video_library</span>
+                <span class="text-[10px] text-text-muted font-medium">Vault</span>
+            </button>
+            <button onclick="switchView('view-tasbih')" class="nav-btn group w-full flex flex-col items-center justify-center gap-1" data-target="view-tasbih">
+                <span class="material-symbols-outlined text-text-muted">fingerprint</span>
+                <span class="text-[10px] text-text-muted font-medium">Tasbih</span>
+            </button>
+        </div>
+    </nav>
+
+    <script>
+        const CONFIG = {
+            channelID: 'UC9V9wJdI1gz9JcPa5uHOg5A',
+            adhkar: {
+                morning: [{ar: "ٱلْحَمْدُ لِلَّهِ", en: "Alhamdu lillah", count: 33}, {ar: "سُبْحَانَ اللهِ", en: "SubhanAllah", count: 33}],
+                evening: [{ar: "أَسْتَغْفِرُ اللهَ", en: "Astaghfirullah", count: 100}],
+                sleep: [{ar: "بِاسْمِكَ رَبِّـي وَضَعْـتُ جَنْـبِي", en: "In Your Name my Lord I lie down", count: 1}],
+                travel: [{ar: "سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا", en: "Glory to Him who has subjected this to us", count: 1}]
+            }
+        };
+
+        const STATE = {
+            lat: 21.42, lng: 39.82, loc: "Makkah",
+            quranMode: 'surah',
+            reciter: localStorage.getItem('reciter') || 'ar.alafasy',
+            currentContextId: 1, // ID of Surah or Page
+            surahs: [],
+            audioList: [],
+            currentAudioIndex: 0
+        };
+
+        // --- NAVIGATION ---
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => {
+                el.style.display = 'none';
+                el.classList.remove('active');
+            });
+            const target = document.getElementById(viewId);
+            if(target) {
+                target.style.display = 'flex';
+                target.classList.add('active');
+            }
+
+            document.querySelectorAll('.nav-btn span').forEach(el => {
+                el.classList.remove('text-primary', 'font-bold');
+                el.classList.add('text-text-muted', 'font-medium');
+            });
+            const btn = document.querySelector(`button[data-target="${viewId}"] span`);
+            if(btn) {
+                btn.parentElement.querySelectorAll('span').forEach(s => {
+                    s.classList.replace('text-text-muted','text-primary');
+                    s.classList.replace('font-medium','font-bold');
+                });
+            }
+
+            if(viewId === 'view-vault') loadVideos();
+        }
+
+        // --- PRAYER TIMES ---
+        function manualLocationSearch() {
+            let city = prompt("Enter City Name:");
+            if(city) {
+                document.getElementById('current-location-text').innerText = city;
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${city}`)
+                .then(res => res.json())
+                .then(data => {
+                    if(data.length > 0) {
+                        STATE.lat = data[0].lat; STATE.lng = data[0].lon; STATE.loc = city;
+                        fetchPrayerData();
+                    } else alert("City not found");
+                });
+            }
+        }
+
+        function getUserLocation() {
+            if(navigator.geolocation) {
+                document.getElementById('current-location-text').innerText = "GPS...";
+                navigator.geolocation.getCurrentPosition(pos => {
+                    STATE.lat = pos.coords.latitude; STATE.lng = pos.coords.longitude; STATE.loc = "Current Location";
+                    fetchPrayerData();
+                });
+            }
+        }
+
+        async function fetchPrayerData() {
+            document.getElementById('current-location-text').innerText = STATE.loc;
+            const d = new Date();
+            const res = await fetch(`https://api.aladhan.com/v1/calendar?latitude=${STATE.lat}&longitude=${STATE.lng}&method=2&month=${d.getMonth()+1}&year=${d.getFullYear()}`);
+            const data = await res.json();
+            
+            const tbody = document.getElementById('forecast-body');
+            tbody.innerHTML = '';
+            data.data.slice(d.getDate()-1, d.getDate()+4).forEach(day => {
+                const t = day.timings;
+                tbody.innerHTML += `<tr class="border-onyx-border/50"><td class="p-3 text-white font-bold">${day.date.gregorian.weekday.en.slice(0,3)}</td><td>${t.Fajr.split(' ')[0]}</td><td>${t.Dhuhr.split(' ')[0]}</td><td>${t.Asr.split(' ')[0]}</td><td class="text-primary font-bold">${t.Maghrib.split(' ')[0]}</td><td>${t.Isha.split(' ')[0]}</td></tr>`;
+            });
+
+            const now = new Date();
+            const todayData = data.data.find(x => parseInt(x.date.gregorian.day) === now.getDate());
+            const prayers = ['Fajr','Dhuhr','Asr','Maghrib','Isha'];
+            let nextTime = null;
+            let nextName = "Fajr";
+
+            for(let p of prayers) {
+                let [h, m] = todayData.timings[p].split(' ')[0].split(':');
+                let t = new Date(); t.setHours(h, m, 0);
+                if(t > now) { nextTime = t; nextName = p; break; }
+            }
+            if(!nextTime) {
+                let [h, m] = data.data[data.data.indexOf(todayData)+1]?.timings.Fajr.split(' ')[0].split(':') || ['05','00'];
+                nextTime = new Date(); nextTime.setDate(now.getDate()+1); nextTime.setHours(h, m, 0);
+            }
+
+            document.getElementById('next-prayer-name').innerText = nextName;
+            setInterval(() => {
+                const diff = nextTime - new Date();
+                if(diff > 0) document.getElementById('timer-display').innerText = new Date(diff).toISOString().substr(11,8);
+            }, 1000);
+        }
+
+        // --- ADHKAR ---
+        function openAdhkar(type) {
+            switchView('view-adhkar');
+            document.getElementById('adhkar-title').innerText = type.charAt(0).toUpperCase() + type.slice(1);
+            const list = document.getElementById('adhkar-list');
+            list.innerHTML = '';
+            CONFIG.adhkar[type].forEach(item => {
+                list.innerHTML += `<div class="bg-onyx-surface border border-onyx-border p-4 rounded-xl"><span class="bg-primary/10 text-primary text-xs px-2 rounded mb-2 inline-block">${item.count}x</span><p class="font-arabic text-xl text-right text-white mb-2">${item.ar}</p><p class="text-xs text-text-muted">${item.en}</p></div>`;
+            });
+        }
+
+        // --- QURAN (Dual Mode) ---
+        async function initQuranIndex() {
+            const grid = document.getElementById('quran-grid');
+            grid.innerHTML = '';
+            
+            document.getElementById('btn-mode-surah').className = STATE.quranMode==='surah' ? 'px-4 py-1.5 rounded-md text-xs font-bold transition-colors bg-primary text-onyx-base' : 'px-4 py-1.5 rounded-md text-xs font-bold transition-colors text-text-muted';
+            document.getElementById('btn-mode-page').className = STATE.quranMode==='page' ? 'px-4 py-1.5 rounded-md text-xs font-bold transition-colors bg-primary text-onyx-base' : 'px-4 py-1.5 rounded-md text-xs font-bold transition-colors text-text-muted';
+
+            if(STATE.quranMode === 'surah') {
+                if(STATE.surahs.length === 0) {
+                    try { const res = await fetch('https://api.alquran.cloud/v1/surah'); const d = await res.json(); STATE.surahs = d.data; } 
+                    catch(e) { grid.innerHTML = 'Network Error'; return; }
+                }
+                STATE.surahs.forEach(s => {
+                    grid.innerHTML += `<div onclick="loadReader(${s.number}, '${s.englishName}', 'surah')" class="bg-onyx-surface border border-onyx-border p-3 rounded-xl flex justify-between items-center cursor-pointer hover:border-primary/50"><div class="flex gap-3 items-center"><span class="size-8 bg-onyx-base border border-onyx-border rounded-full flex items-center justify-center text-xs font-bold text-primary">${s.number}</span><span class="text-sm font-bold text-white">${s.englishName}</span></div></div>`;
+                });
+            } else {
+                for(let i=1; i<=604; i++) {
+                    grid.innerHTML += `<div onclick="loadReader(${i}, 'Page ${i}', 'page')" class="bg-onyx-surface border border-onyx-border p-3 rounded-xl text-center cursor-pointer hover:border-primary/50"><span class="text-sm font-bold text-white">Page ${i}</span></div>`;
+                }
+            }
+        }
+        function setQuranMode(m) { STATE.quranMode = m; initQuranIndex(); }
+
+        async function loadReader(id, title, type) {
+            STATE.currentContextId = id;
+            if(type) STATE.quranMode = type;
+            
+            switchView('view-quran-reader');
+            document.getElementById('reader-title').innerText = title;
+            const content = document.getElementById('reader-content');
+            content.innerHTML = '<div class="flex justify-center p-10"><span class="loader"></span></div>';
+
+            const endpoint = STATE.quranMode === 'surah' ? `surah/${id}` : `page/${id}`;
+            
+            try {
+                // Fetch Text
+                const textRes = await fetch(`https://api.alquran.cloud/v1/${endpoint}/editions/quran-uthmani`);
+                const textData = await textRes.json();
+                
+                content.innerHTML = '';
+                // Handle different structure: Surah has data.ayahs, Page has data.ayahs
+                const ayahs = textData.data.ayahs || textData.data[0].ayahs;
+
+                ayahs.forEach((ayah, i) => {
+                    content.innerHTML += `
+                        <div id="ayah-${i}" class="ayah-card bg-onyx-surface border border-onyx-border rounded-xl p-4 transition-all">
+                            <div class="flex justify-between items-center mb-2"><span class="text-[10px] bg-primary/10 text-primary px-2 rounded font-bold">Ayah ${ayah.numberInSurah}</span><button onclick="playAudio(${i}, '${title}', ${id})" class="text-text-muted hover:text-white"><span class="material-symbols-outlined">play_circle</span></button></div>
+                            <p class="font-arabic text-right text-white leading-[2.5] text-2xl">${ayah.text}</p>
+                        </div>
+                    `;
+                });
+            } catch(e) {
+                content.innerHTML = `<div class="text-center text-red-400 mt-10">Network Error. <button onclick="loadReader(${id}, '${title}')" class="underline">Retry</button></div>`;
+            }
+        }
+
+        function changePage(delta) {
+            let nextId = STATE.currentContextId + delta;
+            if(nextId < 1) return;
+            if(STATE.quranMode === 'surah' && nextId > 114) return;
+            if(STATE.quranMode === 'page' && nextId > 604) return;
+            let nextTitle = STATE.quranMode === 'surah' ? STATE.surahs[nextId-1].englishName : `Page ${nextId}`;
+            loadReader(nextId, nextTitle);
+        }
+
+        // --- AUDIO ---
+        const audio = document.getElementById('quran-audio');
+        async function playAudio(idx, title, id) {
+            const endpoint = STATE.quranMode === 'surah' ? `surah/${id}` : `page/${id}`;
+            const res = await fetch(`https://api.alquran.cloud/v1/${endpoint}/${STATE.reciter}`);
+            const data = await res.json();
+            const audioData = data.data.ayahs || data.data[0].ayahs;
+            STATE.audioList = audioData.map(a => a.audio);
+            
+            STATE.currentAudioIndex = idx;
+            audio.src = STATE.audioList[idx];
+            audio.play();
+            
+            document.getElementById('audio-bar').classList.remove('translate-y-[200%]');
+            document.getElementById('audio-bar-title').innerText = title;
+            document.getElementById('play-icon').innerText = 'pause';
+            
+            // Highlight
+            document.querySelectorAll('.ayah-card').forEach(e => e.classList.remove('active-ayah'));
+            const el = document.getElementById(`ayah-${idx}`);
+            if(el) { el.classList.add('active-ayah'); el.scrollIntoView({behavior:'smooth', block:'center'}); }
+        }
+        function changeReciter(v) { STATE.reciter = v; localStorage.setItem('reciter', v); }
+        function toggleAudio() { if(audio.paused) { audio.play(); document.getElementById('play-icon').innerText='pause'; } else { audio.pause(); document.getElementById('play-icon').innerText='play_arrow'; } }
+        function stopAudio() { audio.pause(); document.getElementById('audio-bar').classList.add('translate-y-[200%]'); }
+        audio.onended = () => { if(STATE.currentAudioIndex < STATE.audioList.length-1) playAudio(STATE.currentAudioIndex+1, document.getElementById('audio-bar-title').innerText, STATE.currentContextId); }
+
+        // --- VIDEOS (RSS + Thumbnails + 3x3) ---
+        async function loadVideos() {
+            const feed = document.getElementById('video-feed');
+            if(feed.children.length > 1) return;
+            feed.innerHTML = '<div class="col-span-3 flex justify-center p-10"><span class="loader"></span></div>';
+            
+            const rssUrl = `https://api.rss2json.com/v1/api.json?rss_url=https://www.youtube.com/feeds/videos.xml?channel_id=${CONFIG.channelID}`;
+            
+            try {
+                const res = await fetch(rssUrl);
+                const data = await res.json();
+                if(data.status === 'ok') {
+                    feed.innerHTML = '';
+                    data.items.forEach(v => {
+                        const vidId = v.link.split('v=')[1];
+                        feed.innerHTML += `
+                            <div onclick="openVideo('${vidId}', '${v.title.replace(/'/g, "")}')" class="bg-onyx-surface border border-onyx-border rounded-lg overflow-hidden cursor-pointer hover:border-primary/50">
+                                <div class="aspect-video-container"><img src="https://img.youtube.com/vi/${vidId}/mqdefault.jpg" class="absolute inset-0 w-full h-full object-cover"><div class="absolute inset-0 flex items-center justify-center bg-black/20"><span class="material-symbols-outlined text-white">play_circle</span></div></div>
+                                <div class="p-2"><h4 class="text-white text-[10px] font-bold line-clamp-2 leading-tight">${v.title}</h4></div>
+                            </div>`;
+                    });
+                } else throw new Error();
+            } catch(e) {
+                // Fallback Mock Data
+                feed.innerHTML = '';
+                ['dQw4w9WgXcQ','jfKfPfyJRdk','5-d_O-B-QJQ','3jB5qYjF5z4','LXb3EKWsInQ'].forEach(id => {
+                    feed.innerHTML += `<div onclick="openVideo('${id}', 'Video')" class="bg-onyx-surface border border-onyx-border rounded-lg overflow-hidden cursor-pointer hover:border-primary/50"><div class="aspect-video-container"><img src="https://img.youtube.com/vi/${id}/mqdefault.jpg" class="absolute inset-0 w-full h-full object-cover"><div class="absolute inset-0 flex items-center justify-center bg-black/20"><span class="material-symbols-outlined text-white">play_circle</span></div></div></div>`;
+                });
+            }
+        }
+        function openVideo(id, title) { document.getElementById('video-modal').classList.remove('hidden'); document.getElementById('video-modal').classList.add('flex'); document.getElementById('modal-title').innerText = title; document.getElementById('youtube-iframe').src = `https://www.youtube.com/embed/${id}?autoplay=1`; }
+        function closeVideo() { document.getElementById('video-modal').classList.add('hidden'); document.getElementById('video-modal').classList.remove('flex'); document.getElementById('youtube-iframe').src = ""; }
+
+        // --- TASBIH & QIBLA ---
+        let tCount = 0;
+        function incrementTasbih() { 
+            tCount++; document.getElementById('tasbih-count').innerText = tCount; 
+            if(navigator.vibrate) navigator.vibrate(10);
+        }
+        function resetTasbih() { tCount=0; document.getElementById('tasbih-count').innerText = 0; }
+        function saveTasbih() {
+            const hist = document.getElementById('tasbih-history');
+            hist.innerHTML = `<div class="flex justify-between text-xs p-2 border-b border-onyx-border"><span class="text-text-muted">${new Date().toLocaleTimeString()}</span><span class="text-primary font-bold">${tCount}</span></div>` + hist.innerHTML;
+            resetTasbih();
+        }
+        function openQiblaModal() { document.getElementById('qibla-modal').classList.remove('hidden'); document.getElementById('qibla-modal').classList.add('flex'); }
+
+        // Init
+        fetchPrayerData();
+        initQuranIndex();
+
+    </script>
+</body>
+</html>
